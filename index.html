@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DualSense — Controle sem fio para PS5</title>
+  <meta name="description" content="Controle sem fio DualSense: gatilhos adaptáveis, resposta tátil com atuadores duplos e um design icônico de dois tons. Estudo de landing page interativa em 3D.">
+  <meta name="theme-color" content="#050507">
+  <script>
+    // O estado de boot só existe com JS; uma rede de segurança libera a página se algo falhar.
+    (function () {
+      var root = document.documentElement;
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) root.classList.add('is-booting');
+      history.scrollRestoration = 'manual';
+      setTimeout(function () { if (!window.NX_BOOTED) root.classList.remove('is-booting'); }, 9000);
+    })();
+  </script>
+  <!-- Opcional: aponte para um GLB (Draco) para substituir o modelo procedural -->
+  <script>window.NEXUS_MODEL_URL = window.NEXUS_MODEL_URL || '';</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,75..125,300..900;1,75..125,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dsblack: "#050507",
+            dsblue: "#1F6BFF",
+            dsglow: "#4D9BFF",
+            dsoff: "#F5F3EE"
+          },
+          fontFamily: {
+            sans: ["Archivo", "system-ui", "sans-serif"],
+            mono: ["JetBrains Mono", "ui-monospace", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="style.css">
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body class="antialiased">
+
+  <!-- ===== Camadas fixas ===== -->
+  <div class="atmos" aria-hidden="true"></div>
+  <canvas id="gl" aria-label="Modelo 3D interativo do controle sem fio DualSense. Arraste para girar; toque no touchpad para mudar a cor da barra de luz."></canvas>
+
+  <div class="boot" aria-hidden="true">
+    <div class="boot__inner">
+      <svg id="bootMark" class="boot__mark" viewBox="0 0 44 40" fill="none">
+        <defs>
+          <linearGradient id="gBoot" x1="0" y1="0" x2="44" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#4d9bff"/>
+            <stop offset="1" stop-color="#1f6bff"/>
+          </linearGradient>
+        </defs>
+        <path d="M22 3L27.2 12H16.8Z M38.5 20A4.5 4.5 0 1 1 29.5 20A4.5 4.5 0 1 1 38.5 20Z M18.5 28.5L25.5 35.5M25.5 28.5L18.5 35.5 M6 16H14V24H6Z" stroke="url(#gBoot)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="boot__bar"><span id="bootLine"></span></div>
+      <div class="boot__meta">
+        <span>DUALSENSE / INICIALIZANDO</span>
+        <span id="bootPct">000</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cursor" aria-hidden="true">
+    <span class="cursor__ring"></span>
+    <span class="cursor__txt">ARRASTE</span>
+  </div>
+
+  <!-- ===== Nav ===== -->
+  <header class="nav">
+    <a href="#hero" class="nav__brand flex items-center gap-3" aria-label="DualSense — início">
+      <svg class="nav__mark" viewBox="0 0 44 40" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="gMark" x1="0" y1="0" x2="44" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#4d9bff"/>
+            <stop offset="1" stop-color="#1f6bff"/>
+          </linearGradient>
+        </defs>
+        <path d="M22 3L27.2 12H16.8Z M38.5 20A4.5 4.5 0 1 1 29.5 20A4.5 4.5 0 1 1 38.5 20Z M18.5 28.5L25.5 35.5M25.5 28.5L18.5 35.5 M6 16H14V24H6Z" stroke="url(#gMark)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="nav__word">DUALSENSE</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Principal">
+      <a href="#design">Design</a>
+      <a href="#anatomia">Anatomia</a>
+      <a href="#gatilhos">Gatilhos</a>
+      <a href="#tatil">Resposta tátil</a>
+      <a href="#edicoes">Edições</a>
+    </nav>
+
+    <div class="nav__actions flex items-center gap-2">
+      <a href="#edicoes" class="btn btn--sm btn--solid nav__cta">
+        <span>Escolher o seu</span>
+        <svg viewBox="0 0 22 10" aria-hidden="true"><path d="M0 5h20M16 1l4 4-4 4"/></svg>
+      </a>
+      <button class="icon-btn" type="button" aria-label="Carrinho, 0 itens">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+      </button>
+      <button class="icon-btn nav__menu" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mnav">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16"/></svg>
+      </button>
+    </div>
+
+    <nav id="mnav" class="mnav" aria-label="Mobile">
+      <a href="#design"><i>02</i>Design</a>
+      <a href="#anatomia"><i>03</i>Anatomia</a>
+      <a href="#gatilhos"><i>04</i>Gatilhos</a>
+      <a href="#tatil"><i>05</i>Resposta tátil</a>
+      <a href="#conectividade"><i>06</i>Conectividade</a>
+      <a href="#edicoes"><i>08</i>Edições</a>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ===== 01 HERO ===== -->
+    <section id="hero" class="hero-v2 layer-front">
+      <div class="hero-v2__aura" aria-hidden="true"></div>
+
+      <div class="hero-v2__copy">
+        <p class="hero-v2__eyebrow mono">
+          <span class="dot"></span>CONTROLE SEM FIO <span class="mute">· PS5</span>
+        </p>
+        <h1 class="hero-v2__title" aria-label="DualSense">
+          <span class="mask"><span>DUAL</span></span>
+          <span class="mask"><span><em>SENSE</em></span></span>
+        </h1>
+        <p class="hero-v2__lede">
+          Um ícone dos jogos nas suas mãos. Gatilhos adaptáveis, resposta tátil com atuadores duplos
+          e uma nova barra de luz para uma experiência de jogo mais rica e inovadora.
+        </p>
+        <div class="hero-v2__ctas flex flex-wrap items-center gap-3">
+          <a href="#edicoes" class="btn btn--solid pe">
+            <span>Escolher o seu</span>
+            <svg viewBox="0 0 22 10" aria-hidden="true"><path d="M0 5h20M16 1l4 4-4 4"/></svg>
+          </a>
+          <a href="#design" class="btn btn--ghost pe">
+            <span>Explorar recursos</span>
+          </a>
+        </div>
+        <p class="hero-v2__hint mono">
+          <span class="hero-v2__swatch" aria-hidden="true"></span>
+          Toque no touchpad · Barra de luz: <b id="lightName">Azul</b>
+        </p>
+      </div>
+
+      <dl class="hero-v2__meta mono">
+        <div><dt>Gatilhos</dt><dd>Adaptáveis</dd></div>
+        <div><dt>Resposta</dt><dd>Atuadores duplos</dd></div>
+        <div><dt>Conexão</dt><dd>USB-C · BT</dd></div>
+      </dl>
+
+      <a href="#bridge" class="scroll-ind mono pe" aria-label="Role para explorar">
+        <span class="scroll-ind__track"><span class="scroll-ind__trail"></span></span>
+        <span>ROLE PARA EXPLORAR</span>
+      </a>
+    </section>
+
+    <!-- ===== BRIDGE ===== -->
+    <section id="bridge" class="bridge layer-back" aria-label="Sinta cada jogada">
+      <div class="bridge__sticky sticky-box">
+        <p class="bridge__text" aria-hidden="true">
+          <span class="bridge__line">SINTA</span>
+          <span class="bridge__line">CADA</span>
+          <span class="bridge__line">JOGADA</span>
+        </p>
+        <span class="sr-only">Sinta cada jogada</span>
+      </div>
+    </section>
+
+    <!-- ===== 02 DESIGN ===== -->
+    <section id="design" class="prec layer-front">
+      <div class="prec__sticky sticky-box">
+
+        <div class="reticle" aria-hidden="true">
+          <svg class="reticle__svg" viewBox="0 0 100 100">
+            <g class="r-ring">
+              <circle class="r-c r-c--1" cx="50" cy="50" r="47"/>
+              <path class="r-tick" d="M50 0v6M50 94v6M0 50h6M94 50h6"/>
+            </g>
+            <circle class="r-c r-c--2" cx="50" cy="50" r="31"/>
+            <circle class="r-c r-c--3" cx="50" cy="50" r="12"/>
+            <line class="r-h" x1="8" y1="50" x2="36" y2="50"/>
+            <line class="r-h" x1="64" y1="50" x2="92" y2="50"/>
+            <line class="r-v" x1="50" y1="8" x2="50" y2="36"/>
+            <line class="r-v" x1="50" y1="64" x2="50" y2="92"/>
+            <circle class="r-dot" cx="50" cy="50" r="1.6"/>
+          </svg>
+          <span class="reticle__label mono">ANALÓGICO L <b id="retX">X +0.000</b> <b id="retY">Y +0.000</b></span>
+        </div>
+
+        <div class="prec__copy">
+          <p class="sec-tag mono"><span>02</span> — DESIGN</p>
+          <h2 class="sec-title">Um ícone<br>nas suas mãos.</h2>
+          <p class="sec-lede">Assuma o controle com um design avançado de dois tons, que combina o layout icônico e intuitivo
+            com hastes aprimoradas e uma nova barra de luz.</p>
+
+          <ul class="readout" aria-label="Especificações">
+            <li class="readout__row">
+              <span class="readout__k mono">Peso aprox.</span>
+              <span class="readout__v"><b class="count" data-to="280">280</b><i>G</i></span>
+            </li>
+            <li class="readout__row">
+              <span class="readout__k mono">Bateria</span>
+              <span class="readout__v"><b class="count" data-to="1560">1560</b><i>MAH</i></span>
+            </li>
+            <li class="readout__row">
+              <span class="readout__k mono">Bluetooth</span>
+              <span class="readout__v"><b class="count" data-to="5.1" data-dec="1">5.1</b><i>VER.</i></span>
+            </li>
+            <li class="readout__row">
+              <span class="readout__k mono">Atuadores táteis</span>
+              <span class="readout__v"><b class="count" data-to="2">2</b><i>DUPLOS</i></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 03 ANATOMIA ===== -->
+    <section id="anatomia" class="engine layer-front">
+      <div class="engine__sticky sticky-box">
+        <div class="engine__copy">
+          <p class="sec-tag mono"><span>03</span> — ANATOMIA</p>
+          <h2 class="sec-title">Por dentro<br>do DualSense.</h2>
+          <p class="sec-lede">Oito conjuntos trabalham juntos para transformar o que acontece na tela em algo que
+            você sente. Role para desmontar.</p>
+          <div class="engine__xv mono">
+            <span>VISTA EXPLODIDA</span>
+            <span class="engine__bar"><span id="xvBar"></span></span>
+            <span id="xvPct">000%</span>
+          </div>
+        </div>
+
+        <ol class="engine__bom" aria-label="Componentes">
+          <li class="engine__item"><span class="mono">01</span><strong>Painéis laterais</strong><em class="mono">Dois tons · D-pad e botões de ação</em></li>
+          <li class="engine__item"><span class="mono">02</span><strong>Touchpad e barra de luz</strong><em class="mono">Multitoque · LED de cor</em></li>
+          <li class="engine__item"><span class="mono">03</span><strong>Hastes analógicas</strong><em class="mono">Hastes aprimoradas</em></li>
+          <li class="engine__item"><span class="mono">04</span><strong>Placa principal</strong><em class="mono">Bluetooth 5.1 · USB-C</em></li>
+          <li class="engine__item"><span class="mono">05</span><strong>Atuadores duplos</strong><em class="mono">Substituem motores tradicionais</em></li>
+          <li class="engine__item"><span class="mono">06</span><strong>Bateria</strong><em class="mono">Íon de lítio · 1560 mAh</em></li>
+          <li class="engine__item"><span class="mono">07</span><strong>Gatilhos adaptáveis</strong><em class="mono">Tensão variável em L2 e R2</em></li>
+          <li class="engine__item"><span class="mono">08</span><strong>Estrutura central</strong><em class="mono">Alto-falante · microfone · botão PS</em></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ===== 04 GATILHOS ===== -->
+    <section id="gatilhos" class="trig layer-front">
+      <div class="trig__sticky sticky-box">
+        <div class="trig__copy">
+          <p class="sec-tag mono"><span>04</span> — GATILHOS ADAPTÁVEIS</p>
+          <h2 class="sec-title">Sinta a<br>tensão.</h2>
+          <p class="sec-lede">Diferentes níveis de força e tensão conforme você interage com o jogo — da corda de um
+            arco cada vez mais apertada ao freio de um carro de corrida. Ajuste a tensão e veja o gatilho responder.</p>
+        </div>
+
+        <div class="force pe">
+          <div class="force__head mono">
+            <span>FORÇA / CURSO</span>
+            <span>PICO <b id="forcePeak">59%</b></span>
+          </div>
+          <svg class="force__graph" viewBox="0 0 400 220" aria-hidden="true">
+            <g class="force__grid">
+              <path d="M0 55h400M0 110h400M0 165h400M100 0v220M200 0v220M300 0v220"/>
+            </g>
+            <line class="force__wall" x1="236" y1="0" x2="236" y2="220"/>
+            <path class="force__area" d="M0 220 L400 60 L400 220Z"/>
+            <path class="force__line" d="M0 220 L400 60"/>
+            <circle class="force__dot" cx="0" cy="220" r="5"/>
+          </svg>
+          <div class="force__axis mono"><span>0%</span><span>CURSO DO GATILHO</span><span>100%</span></div>
+
+          <div class="force__ctl">
+            <div class="force__labels mono">
+              <span>TENSÃO</span>
+              <output id="forceVal">40%</output>
+            </div>
+            <div class="force__track" role="slider" tabindex="0" aria-label="Tensão do gatilho"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="40">
+              <span class="force__fill"></span>
+              <span class="force__thumb"></span>
+            </div>
+            <div class="force__modes mono">
+              <button type="button" data-v="0">Livre</button>
+              <button type="button" data-v="40" class="is-on">Arco</button>
+              <button type="button" data-v="100">Freio</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 05 RESPOSTA TÁTIL ===== -->
+    <section id="tatil" class="hapt layer-front">
+      <div class="hapt__sticky sticky-box">
+        <div class="hapt__copy">
+          <p class="sec-tag mono"><span>05</span> — RESPOSTA TÁTIL</p>
+          <h2 class="sec-title">Sinta em suas mãos.</h2>
+        </div>
+
+        <div class="haptic__ch haptic__ch--l" aria-hidden="true">
+          <span class="haptic__k mono">ATUADOR ESQUERDO</span>
+          <strong>Ambiente</strong>
+          <span class="haptic__bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="mono mute">CHUVA · TERRENO · IMPACTO</span>
+        </div>
+        <div class="haptic__ch haptic__ch--r" aria-hidden="true">
+          <span class="haptic__k mono">ATUADOR DIREITO</span>
+          <strong>Recuo</strong>
+          <span class="haptic__bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="mono mute">ARMAS · MOTORES · COLISÕES</span>
+        </div>
+
+        <p class="hapt__lede sec-lede">Atuadores duplos substituem os barulhentos motores tradicionais. As vibrações
+          dinâmicas reagem às suas escolhas e simulam desde o ambiente até o recuo de cada arma.</p>
+      </div>
+    </section>
+
+    <!-- ===== 06 CONECTIVIDADE ===== -->
+    <section id="conectividade" class="conn layer-front">
+      <div class="conn__head">
+        <p class="sec-tag mono"><span>06</span> — CONECTIVIDADE</p>
+        <h2 class="sec-title">Jogue mais tempo,<br>em mais telas.</h2>
+        <p class="sec-lede">Deixe seus controles carregados e prontos, esteja você no seu canto de jogo ou longe da TV
+          com o PS Remote Play.</p>
+      </div>
+
+      <div class="conn__grid">
+        <article class="conn__card">
+          <svg class="conn__icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 48h48l-4 8H12Z"/><path d="M16 48V30a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v18M32 48V30a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v18"/><path class="acc" d="M20 38h8M36 38h8"/></svg>
+          <h3>Clique. Carregue. Jogue.</h3>
+          <p>A base de carregamento conecta até dois controles de forma rápida e simples. Eles carregam tão rápido
+            quanto no console PS5, e as portas USB ficam livres.</p>
+        </article>
+        <article class="conn__card">
+          <svg class="conn__icon" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="12" width="36" height="24" rx="3"/><path d="M18 44h12M24 36v8"/><rect x="44" y="20" width="14" height="26" rx="3"/><path class="acc" d="M49 41h4"/></svg>
+          <h3>PC, Mac e mobile</h3>
+          <p>Conecte por cabo USB Tipo-C® ou Bluetooth® e jogue no Windows, no Mac e em celulares e tablets Android e
+            iOS. Em vários títulos de PC, a resposta tátil e os gatilhos adaptáveis também funcionam.</p>
+        </article>
+        <article class="conn__card">
+          <svg class="conn__icon" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22"/><path d="M32 18v14l9 6"/><path class="acc" d="M46 10l6 6-6 6"/></svg>
+          <h3>Remote Play e firmware</h3>
+          <p>Transmita jogos do PS4™ ou PS5 para PC, Mac ou dispositivos móveis com o app PS Remote Play. No Windows,
+            atualize o firmware do controle pelo app PlayStation Accessories.</p>
+        </article>
+      </div>
+
+      <ul class="conn__devices mono" aria-label="Plataformas compatíveis">
+        <li>PS5</li><li>Windows</li><li>Mac</li><li>Android</li><li>iOS</li>
+      </ul>
+    </section>
+
+    <!-- ===== 07 DUALSENSE EDGE ===== -->
+    <section id="edge" class="edge layer-front">
+      <div class="edge__media">
+        <svg class="range__sil" viewBox="-8.4 -3.2 16.8 11.2" aria-hidden="true"><path transform="scale(1,-1)" d="M0 2.55C1.5 2.6 2.75 2.68 4.3 2.75C5.7 2.55 6.9 1.9 7.6 0.8C7.85 -0.6 7.75 -2.6 7.35 -4.6C6.8 -6.2 6.1 -7.2 5.3 -7.5C4.6 -7.1 4.15 -6 3.75 -4.6C3.3 -3.2 2.5 -2.55 1.3 -2.35C0 -2.3 -1.3 -2.35 -2.5 -2.55C-3.3 -3.2 -3.75 -4.6 -4.15 -6C-4.6 -7.1 -5.3 -7.5 -6.1 -7.2C-6.8 -6.2 -7.35 -4.6 -7.75 -2.6C-7.85 -0.6 -7.6 0.8 -6.9 1.9C-5.7 2.55 -4.3 2.75 -2.75 2.68C-1.5 2.6 0 2.55 0 2.55Z"/></svg>
+        <img data-variant="edge" data-view="back" data-w="1000" data-h="760" alt="Controle sem fio DualSense Edge visto de trás, com os botões posteriores">
+      </div>
+      <div class="edge__copy">
+        <p class="sec-tag mono"><span>07</span> — DUALSENSE EDGE™</p>
+        <h2 class="sec-title">Alto desempenho,<br>do seu jeito.</h2>
+        <p class="sec-lede">Botões customizáveis, gatilhos ajustáveis, capas de analógico intercambiáveis e botões
+          posteriores. Construído para alto desempenho e personalização, sem abrir mão de nenhum recurso imersivo do
+          DualSense.</p>
+        <ul class="edge__chips mono">
+          <li>Botões posteriores</li>
+          <li>Capas intercambiáveis</li>
+          <li>Perfis personalizados</li>
+          <li>Curso de gatilho ajustável</li>
+        </ul>
+        <a href="#edicoes" class="btn btn--ghost pe">
+          <span>Ver na coleção</span>
+          <svg viewBox="0 0 22 10" aria-hidden="true"><path d="M0 5h20M16 1l4 4-4 4"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- ===== 08 EDIÇÕES ===== -->
+    <section id="edicoes" class="rangesec layer-front">
+      <div class="rangesec__head">
+        <div>
+          <p class="sec-tag mono"><span>08</span> — EDIÇÕES</p>
+          <h2 class="sec-title">Escolha<br>seu estilo.</h2>
+          <p class="sec-lede">Personalize seus acessórios e chame mais gente para o multiplayer local com mais um
+            controle sem fio DualSense.</p>
+        </div>
+        <div class="rangesec__filters mono" role="group" aria-label="Filtrar produtos">
+          <button type="button" class="is-on" data-filter="all" aria-pressed="true">Todos</button>
+          <button type="button" data-filter="controles" aria-pressed="false">Controles</button>
+          <button type="button" data-filter="limitadas" aria-pressed="false">Edições limitadas</button>
+          <button type="button" data-filter="acessorios" aria-pressed="false">Acessórios</button>
+        </div>
+      </div>
+
+      <div class="rangesec__grid">
+        <article class="range__item range__item--wide" data-cat="limitadas">
+          <div class="range__media">
+            <svg class="range__sil" viewBox="-8.4 -3.2 16.8 11.2" aria-hidden="true"><use href="#silPath"/></svg>
+            <img data-variant="vice" data-w="1200" data-h="450" alt="Controle DualSense de edição limitada inspirado em Grand Theft Auto VI, com acabamento furta-cor">
+            <span class="range__tag mono">EDIÇÃO LIMITADA</span>
+          </div>
+          <div class="range__meta">
+            <span class="range__code mono">INSPIRADO EM GRAND THEFT AUTO VI</span>
+            <h3>Vice City</h3>
+            <p>Acabamento brilhante furta-cor com folhas de palmeira texturizadas: um tributo ousado à Vice City moderna.</p>
+          </div>
+        </article>
+
+        <article class="range__item range__item--wide" data-cat="limitadas">
+          <div class="range__media">
+            <svg class="range__sil" viewBox="-8.4 -3.2 16.8 11.2" aria-hidden="true"><use href="#silPath"/></svg>
+            <img data-variant="lisa" data-w="1200" data-h="450" alt="Controle DualSense edição limitada LISA, com estampa de estrelas">
+            <span class="range__tag mono">EDIÇÃO LIMITADA</span>
+          </div>
+          <div class="range__meta">
+            <span class="range__code mono">PROJETADO COM A LISA</span>
+            <h3>Edição LISA</h3>
+            <p>Estrelas e toques pessoais inspirados na própria artista, celebrando um ícone global.</p>
+          </div>
+        </article>
+
+        <article class="range__item" data-cat="controles">
+          <div class="range__media">
+            <svg class="range__sil" viewBox="-8.4 -3.2 16.8 11.2" aria-hidden="true"><use href="#silPath"/></svg>
+            <img data-variant="branco" alt="Controle sem fio DualSense branco">
+          </div>
+          <div class="range__meta">
+            <span class="range__code mono">DUALSENSE</span>
+            <h3>Branco</h3>
+            <p>O clássico de dois tons.</p>
+          </div>
+        </article>
+
+        <article class="range__item" data-cat="controles">
+          <div class="range__media">
+            <svg class="range__sil" viewBox="-8.4 -3.2 16.8 11.2" aria-hidden="true"><use href="#silPath"/></svg>
+            <img data-variant="midnight" alt="Controle sem fio DualSense Midnight Black">
+          </div>
+          <div class="range__meta">
+            <span class="range__code mono">DUALSENSE</span>
+            <h3>Midnight Black</h3>
+            <p>Preto sobre preto.</p>
+          </div>
+        </article>
+
+        <article class="range__item" data-cat="controles">
+          <div class="range__media">
+            <svg class="range__sil" viewBox="-8.4 -3.2 16.8 11.2" aria-hidden="true"><use href="#silPath"/></svg>
+            <img data-variant="cosmic" alt="Controle sem fio DualSense Cosmic Red">
+          </div>
+          <div class="range__meta">
+            <span class="range__code mono">DUALSENSE</span>
+            <h3>Cosmic Red</h3>
+            <p>Vermelho intenso, centro preto.</p>
+          </div>
+        </article>
+
+        <article class="range__item" data-cat="controles">
+          <div class="range__media">
+            <svg class="range__sil" viewBox="-8.4 -3.2 16.8 11.2" aria-hidden="true"><use href="#silPath"/></svg>
+            <img data-variant="edge" data-view="back" alt="Controle sem fio DualSense Edge visto de trás">
+            <span class="range__tag mono">PRO</span>
+          </div>
+          <div class="range__meta">
+            <span class="range__code mono">DUALSENSE EDGE™</span>
+            <h3>Edge</h3>
+            <p>Personalização total e botões posteriores.</p>
+          </div>
+        </article>
+
+        <article class="range__item" data-cat="acessorios">
+          <div class="range__media">
+            <svg class="range__icon" viewBox="0 0 120 90" aria-hidden="true"><path d="M14 66h92l-8 12H22Z"/><path d="M28 66V44a6 6 0 0 1 6-6h14a6 6 0 0 1 6 6v22M66 66V44a6 6 0 0 1 6-6h14a6 6 0 0 1 6 6v22"/><path class="acc" d="M34 54h14M72 54h14"/></svg>
+          </div>
+          <div class="range__meta">
+            <span class="range__code mono">ACESSÓRIO</span>
+            <h3>Base de carregamento</h3>
+            <p>Carrega dois controles de uma vez.</p>
+          </div>
+        </article>
+
+        <article class="range__item" data-cat="acessorios">
+          <div class="range__media">
+            <svg class="range__icon" viewBox="0 0 120 90" aria-hidden="true"><path d="M44 10c-10 18-10 52 0 70h10V10Z"/><path d="M76 10c10 18 10 52 0 70H66V10Z"/><path class="acc" d="M56 10v70M64 10v70"/></svg>
+          </div>
+          <div class="range__meta">
+            <span class="range__code mono">COMPLETE O VISUAL</span>
+            <h3>Tampas do console</h3>
+            <p>Combine o controle com uma tampa PS5 da mesma cor.</p>
+          </div>
+        </article>
+
+        <article class="range__item range__item--wide range__item--text" data-cat="limitadas">
+          <div class="range__textcard">
+            <span class="range__code mono">COLEÇÃO</span>
+            <h3>Mais edições limitadas</h3>
+            <p>Celebre alguns dos maiores jogos, personagens e momentos do PlayStation com edições limitadas do
+              controle sem fio DualSense.</p>
+            <span class="range__more mono">Em breve novas edições →</span>
+          </div>
+        </article>
+      </div>
+
+      <p class="range__note mono">Imagens renderizadas em tempo real a partir do modelo 3D desta página · ilustrativas</p>
+
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+          <path id="silPath" transform="scale(1,-1)" d="M0 2.55C1.5 2.6 2.75 2.68 4.3 2.75C5.7 2.55 6.9 1.9 7.6 0.8C7.85 -0.6 7.75 -2.6 7.35 -4.6C6.8 -6.2 6.1 -7.2 5.3 -7.5C4.6 -7.1 4.15 -6 3.75 -4.6C3.3 -3.2 2.5 -2.55 1.3 -2.35C0 -2.3 -1.3 -2.35 -2.5 -2.55C-3.3 -3.2 -3.75 -4.6 -4.15 -6C-4.6 -7.1 -5.3 -7.5 -6.1 -7.2C-6.8 -6.2 -7.35 -4.6 -7.75 -2.6C-7.85 -0.6 -7.6 0.8 -6.9 1.9C-5.7 2.55 -4.3 2.75 -2.75 2.68C-1.5 2.6 0 2.55 0 2.55Z"/>
+        </defs>
+      </svg>
+    </section>
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer id="footer" class="foot layer-front">
+    <div class="foot__stage">
+      <div class="foot__field" aria-hidden="true">
+        <span class="foot__row" style="--k:-3">SINTA O JOGO</span>
+        <span class="foot__row" style="--k:-2">SINTA O JOGO</span>
+        <span class="foot__row" style="--k:-1">SINTA O JOGO</span>
+        <span class="foot__row foot__row--solid" style="--k:0">SINTA O JOGO</span>
+        <span class="foot__row" style="--k:1">SINTA O JOGO</span>
+        <span class="foot__row" style="--k:2">SINTA O JOGO</span>
+        <span class="foot__row" style="--k:3">SINTA O JOGO</span>
+      </div>
+      <div class="foot__singularity" aria-hidden="true">
+        <span class="foot__energy"></span>
+        <span class="foot__energy foot__energy--2"></span>
+        <span class="foot__core"></span>
+      </div>
+      <h2 class="sr-only">Sinta o jogo</h2>
+    </div>
+
+    <div class="foot__grid">
+      <div class="foot__brand">
+        <a href="#hero" class="flex items-center gap-3" aria-label="DualSense — voltar ao topo">
+          <svg class="nav__mark" viewBox="0 0 44 40" fill="none" aria-hidden="true"><path d="M22 3L27.2 12H16.8Z M38.5 20A4.5 4.5 0 1 1 29.5 20A4.5 4.5 0 1 1 38.5 20Z M18.5 28.5L25.5 35.5M25.5 28.5L18.5 35.5 M6 16H14V24H6Z" stroke="url(#gMark)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="nav__word">DUALSENSE</span>
+        </a>
+        <form class="foot__form" novalidate>
+          <label for="nl" class="mono">LANÇAMENTOS E EDIÇÕES LIMITADAS</label>
+          <div class="foot__input">
+            <input id="nl" type="email" placeholder="voce@email.com" autocomplete="email" required>
+            <button type="submit" aria-label="Inscrever">
+              <svg viewBox="0 0 22 10" aria-hidden="true"><path d="M0 5h20M16 1l4 4-4 4"/></svg>
+            </button>
+          </div>
+          <p class="foot__msg mono" role="status"></p>
+        </form>
+      </div>
+      <div class="foot__col">
+        <h4 class="mono">Produto</h4>
+        <a href="#design">DualSense</a><a href="#edge">DualSense Edge</a><a href="#edicoes">Edições limitadas</a><a href="#conectividade">Base de carregamento</a>
+      </div>
+      <div class="foot__col">
+        <h4 class="mono">Suporte</h4>
+        <a href="#conectividade">Atualizar firmware</a><a href="#conectividade">PS Remote Play</a><a href="#conectividade">Compatibilidade</a>
+      </div>
+      <div class="foot__col">
+        <h4 class="mono">Notas</h4>
+        <p class="foot__note">Gatilhos adaptáveis e resposta tátil disponíveis em jogos compatíveis. Recursos no PC
+          dependem do suporte de cada título.</p>
+      </div>
+    </div>
+
+    <div class="foot__base mono">
+      <span>PROJETO DE ESTUDO · NÃO AFILIADO À SONY</span>
+      <span>PLAYSTATION, DUALSENSE, PS5 E PS REMOTE PLAY SÃO MARCAS DA SONY INTERACTIVE ENTERTAINMENT INC.</span>
+      <a href="#hero" class="pe">VOLTAR AO TOPO ↑</a>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/CustomEase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+  <script src="scripts.js"></script>
+  <script type="module" src="gl.js"></script>
+</body>
+</html>
